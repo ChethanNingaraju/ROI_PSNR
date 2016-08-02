@@ -5,6 +5,11 @@ import docopt
 import numpy as np
 import array
 import os
+import math
+
+def psnr(mse):
+    log10 = math.log10
+    return 10.0 * log10(float(256 * 256) / float(mse))
 ###
 # Docopt
 ###
@@ -59,19 +64,46 @@ totalFrames = int(minsize/frameSize);
 ###
 # Calculate YUV PSNR of entire frame considering 16x16 blocks
 ###
-decData = array.array('B');
-refData = array.array('B');
+#Calculate width and height in number of blocks
+if frameWidth / 16 != int(frameWidth/16):
+    print("WARNING: Frame width not multiple of block size, ignoring incomplete blocks");
+if frameHeight / 16 != int(frameHeight / 16):
+    print("WARNING: Frame height not multiple of block size, ignoring incomplete blocks");
+numBlockWidth = int(frameWidth / 16); #This shall ignore the incomplete blocks if width and height are not multiple of block size
+numBlockHeight = int(frameHeight / 16);
 
 for numFrame in range(0,totalFrames):
+    decData = array.array('B');
+    refData = array.array('B');
     #Read one from worth of data
+    decFile.seek(frameSize * numFrame);
+    refFile.seek(frameSize * numFrame);
     decData.fromfile(decFile,frameSize);
     refData.fromfile(refFile,frameSize);
 
+
     #iterate through 16x16 blocks
+    mse = 0;
+    for yBlock in range(0, numBlockHeight):
+        for xBlock in range(0,numBlockWidth):
+            startx = xBlock * 16;
+            starty = yBlock * 16;
+            curStartByte = starty * frameWidth + startx;
+            for i in range(0,16):
+                stride = curStartByte + i * frameWidth;
+                endStride = curStartByte + i * frameWidth + 16;
+                mse += sum( (a - b)* (a - b) for a,b in zip(refData[stride:endStride],decData[stride:endStride]));
+                #print(refData[stride:endStride]);
+                #print(decData[stride:endStride]);
+    mse = mse / (frameWidth * frameHeight);
+    #print(mse);
+    print(psnr(mse));
 
 print("Exiting!!!!!");
 decFile.close();
 refFile.close();
+
+
 
 
 
