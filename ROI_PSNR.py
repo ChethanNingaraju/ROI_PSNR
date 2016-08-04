@@ -20,8 +20,8 @@ usage:
 options:
      -w, --width=NUMBER            Width of yuv files
      -h, --height=NUMBER           height of yuv files
-     -r, --reffile=STRING          path of reference file for PSNR calculation
-     -i, --infile=STRING           path of path file for PSNR calculation
+     -r, --reffile=STRING          path of reference file for PSNR calculation, yuv420p format
+     -i, --infile=STRING           path of path file for PSNR calculation, yuv420p format
      -m, --mapfile=STRING          Binary file to specify region of interest
 """
 
@@ -66,9 +66,11 @@ totalFrames = int(minsize/frameSize);
 ###
 #Calculate width and height in number of blocks
 if frameWidth / 16 != int(frameWidth/16):
-    print("WARNING: Frame width not multiple of block size, ignoring incomplete blocks");
+    print("ERROR: Frame width not multiple of block size, ignoring incomplete blocks");
+    exit(0);
 if frameHeight / 16 != int(frameHeight / 16):
     print("WARNING: Frame height not multiple of block size, ignoring incomplete blocks");
+    exit(0);
 numBlockWidth = int(frameWidth / 16); #This shall ignore the incomplete blocks if width and height are not multiple of block size
 numBlockHeight = int(frameHeight / 16);
 
@@ -84,20 +86,37 @@ for numFrame in range(0,totalFrames):
 
     #iterate through 16x16 blocks
     mse = 0;
+    mse_u = 0;
+    mse_v = 0;
     for yBlock in range(0, numBlockHeight):
         for xBlock in range(0,numBlockWidth):
             startx = xBlock * 16;
             starty = yBlock * 16;
             curStartByte = starty * frameWidth + startx;
+            ##loop for LUMA MSE
             for i in range(0,16):
                 stride = curStartByte + i * frameWidth;
                 endStride = curStartByte + i * frameWidth + 16;
                 mse += sum( (a - b)* (a - b) for a,b in zip(refData[stride:endStride],decData[stride:endStride]));
                 #print(refData[stride:endStride]);
                 #print(decData[stride:endStride]);
+            #loop for chroma PSNR
+            curStartByte_u = (frameWidth * frameHeight) + (yBlock * 16/2 * frameWidth/2) + (xBlock * 16/2);
+            for i in range(0,int(16/2)):
+                stride_u = int(curStartByte_u + i * frameWidth/2);
+                endStride_u = int(curStartByte_u + i * frameWidth/2 + 8);
+                stride_v = int(stride_u + (frameWidth/2 * frameHeight/2));
+                endStride_v = int(endStride_u + (frameWidth/2 * frameHeight/2));
+                mse_u += sum((a - b) * (a - b) for a, b in zip(refData[stride_u:endStride_u], decData[stride_u:endStride_u]));
+                mse_v += sum((a - b) * (a - b) for a, b in zip(refData[stride_v:endStride_v], decData[stride_v:endStride_v]));
+
+
+
+    total_mse = (mse + mse_u + mse_v)/(frameSize);
     mse = mse / (frameWidth * frameHeight);
+
     #print(mse);
-    print(psnr(mse));
+    print("Luma PSNR = ",psnr(mse) ,"total PSNR = ", psnr(total_mse));
 
 print("Exiting!!!!!");
 decFile.close();
