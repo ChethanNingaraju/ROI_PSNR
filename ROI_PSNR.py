@@ -78,6 +78,8 @@ numBlockWidth = int(frameWidth / 16); #This shall ignore the incomplete blocks i
 numBlockHeight = int(frameHeight / 16);
 seq_mse_luma_ROI = 0;
 seq_mse_luma = 0;
+seq_psnr_luma = 0;
+seq_psnr_luma_ROI = 0;
 for numFrame in range(0,totalFrames):
     decData = array.array('B');
     refData = array.array('B');
@@ -142,9 +144,10 @@ for numFrame in range(0,totalFrames):
 
     total_mse = (mse + mse_u + mse_v)/(frameSize);
     mse = mse / (frameWidth * frameHeight);
-
+    seq_psnr_luma += psnr(mse);
     ##ROI based PSNR
     mse_roi_luma = mse_roi/(num_ROI_blocks * 16 * 16);
+    seq_psnr_luma_ROI += psnr(mse_roi_luma);
     #print(mse);
     #print("n = ", numFrame ,"Luma PSNR = ", psnr(mse), mse , "total PSNR = ", psnr(total_mse),total_mse, "Luma ROI PSNR = ", psnr(mse_roi_luma));
     ##Accumulate states to b printed in the end.
@@ -152,6 +155,8 @@ for numFrame in range(0,totalFrames):
     seq_mse_luma_ROI += mse_roi_luma;
 print("##############################################################");
 print("Luma PSNR =  ", psnr(seq_mse_luma/totalFrames), "Luma PSNR ROI = ", psnr(seq_mse_luma_ROI/totalFrames));
+print("Avg Luma PSNR =  ", seq_psnr_luma/totalFrames, "Avg Luma PSNR ROI = ", seq_psnr_luma_ROI/totalFrames);
+
 print("Exiting!!!!!");
 decFile.close();
 refFile.close();
