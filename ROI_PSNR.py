@@ -53,16 +53,17 @@ def createPSNRMap(LumaMSEBlock, MIN_PSNR, MAX_PSNR,file_name):
 DOC = """
 usage:
    ROI_PSNR [options]
+
 options:
      -w, --width=NUMBER            Width of yuv files
      -h, --height=NUMBER           height of yuv files
      -r, --reffile=STRING          path of reference file for PSNR calculation, yuv420p format
      -i, --infile=STRING           path of path file for PSNR calculation, yuv420p format
      -m, --mapfile=STRING          Binary file to specify region of interest(optional)
-     -n, --maxFrames=NUMBER        Number of frames to be considered (optional, default: min of total number of frames)
-     -f, --psnrFile=STRING         Binary file with the PSNR map to be generated (optional, default file will be created in current folder)
-     -x, --minPSNR=NUMBER              Minimum PSNR for generating the relative PSNR map (Optioanl, default: calculated based on 10th percentile of PSNR)
-     -y, --maxPSNR=NUMEBR              Maximum PSNR for generating the relative PSNR map (Optioanl, default: calculated based on 90th percentile of PSNR)
+     -n, --maxFrames=NUMBER        Number of frames to be considered (optional: default: min of total number of frames)
+     -f, --psnrFile=STRING         Binary file with the PSNR map to be generated (optional: cur working dir)
+     -x, --minPSNR=NUMBER          Minimum PSNR for generating the relative PSNR map (Optioanl: default: 10th percentile)
+     -y, --maxPSNR=NUMBER          Maximum PSNR for generating the relative PSNR map (Optioanl: default: 90th percentile)
 
 """
 
@@ -142,13 +143,13 @@ for numFrame in range(0,totalFrames):
     decFile.seek(frameSize * numFrame);
     refFile.seek(frameSize * numFrame);
     if mapfile != None:
-        mapfile.seek(int(frameSize/(16*16)) * numFrame);#since map file has one byte of data for every macro-block
+        mapfile.seek(int((frameHeight * frameWidth)/(16*16)) * numFrame);#since map file has one byte of data for every macro-block
 
     decData.fromfile(decFile,frameSize);
     refData.fromfile(refFile,frameSize);
 
     if mapfile != None:
-        ROI_map_data.fromfile(mapfile,int((frameSize/(16*16))));
+        ROI_map_data.fromfile(mapfile,int((frameHeight * frameWidth/(16*16))));
 
     #iterate through 16x16 blocks
     #MSE OF entire frame
