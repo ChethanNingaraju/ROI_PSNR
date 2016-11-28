@@ -15,7 +15,7 @@ def psnr(mse):
 '''
 LumaMSEBlock: block wise MSE in raster scan order
 '''
-def createPSNRMap(LumaMSEBlock, MIN_PSNR, MAX_PSNR,file_name):
+def createPSNRMap(LumaMSEBlock, LumaPSNRBlock, MIN_PSNR, MAX_PSNR,file_name):
     if file_name == "":
         PSNR_map_file = open("./PSNR_map_file.bin","wb");
     else:
@@ -25,9 +25,6 @@ def createPSNRMap(LumaMSEBlock, MIN_PSNR, MAX_PSNR,file_name):
 
     ##Find the typical range of PSNR values, considering 90th percentile as max and 10th percentile as min
     ##This is make the PSNR representation immune to outliers
-    LumaPSNRBlock = []
-    for i in range(0,len(LumaMSEBlock)):
-        LumaPSNRBlock.append(psnr(LumaMSEBlock[i] / (16 * 16)));
     #Min and Max PSNR thresholds can be user configurable
     if MAX_PSNR == -1:
         MAX_PSNR = np.percentile(LumaPSNRBlock,90);
@@ -47,6 +44,29 @@ def createPSNRMap(LumaMSEBlock, MIN_PSNR, MAX_PSNR,file_name):
     PSNR_map_file.write(psnr_map_bytearray);
     PSNR_map_file.close();
 
+'''
+Function name: calcStdDevPSNRMSE
+This function calculates the standard deviation of PSNR and MSE across the macroblaocks. This helps to check the variaiton of PSNR within
+the frame. The deviation is calculated at frame level and averaged over entire sequence.
+
+The idea is to check the uniformity of distortion within the frame
+
+LumaMSEBlock: List of MSE of Block values of entire sequence
+frame_size: Size of the frame in terms of number of macro-block values
+'''
+def calcStdDev(LumaMSEBlock, LumaPSNRBlock, frame_size):
+    numFrame = 0;
+    accumStdDevMSE = 0;
+    accumStdDevPsnr = 0;
+    numFrameSeq = int(len(LumaMSEBlock)/ frame_size);
+    for i in range(0 , numFrameSeq):
+        accumStdDevMSE += np.std(LumaMSEBlock[(i*frame_size):((i+1) * frame_size)]);
+        accumStdDevPsnr += np.std(LumaPSNRBlock[(i*frame_size):((i+1) * frame_size)]);
+
+    accumStdDevMSE = accumStdDevMSE/numFrameSeq;
+    accumStdDevPsnr = accumStdDevPsnr/numFrameSeq;
+    print('----------Standard Deviation----------------');
+    print("Average std dev MSE = ", accumStdDevMSE,"Average std dev PSNR = ", accumStdDevPsnr);
 ###
 # Docopt
 ###
@@ -244,8 +264,16 @@ print("Avg Luma PSNR =  ", "%.2f" % (seq_psnr[0]/totalFrames), "Avg Luma PSNR RO
 print("---------WT AVG PSNR------------");
 print("Wt Avg PSNR = ", "%.2f" %  (( 6 * seq_psnr[0] + seq_psnr[1] + seq_psnr[2])/(8 * totalFrames)), "Wt Avg PSNR ROI = ", "%.2f" %  (( 6 * seq_psnr_ROI[0] + seq_psnr_ROI[1] + seq_psnr_ROI[2])/(8 * totalFrames)));
 
+##Calculate PSNR of all blocks
+Luma_psnr_block = []
+for i in range(0, len(luma_mse_block)):
+    Luma_psnr_block.append(psnr(luma_mse_block[i] / (16 * 16)));
+
 ##Code to generate PSNR Map
-createPSNRMap(luma_mse_block, MIN_PSNR, MAX_PSNR, PSNR_map_file);
+createPSNRMap(luma_mse_block, Luma_psnr_block, MIN_PSNR, MAX_PSNR, PSNR_map_file);
+
+##calculate the standard deviation in PSNR and MSE before and after changes
+calcStdDev(luma_mse_block, Luma_psnr_block, int((frameWidth * frameHeight)/ (16 * 16)));
 print("Exiting!!!!!");
 decFile.close();
 refFile.close();
