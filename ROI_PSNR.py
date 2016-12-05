@@ -149,10 +149,13 @@ numBlockWidth = int(frameWidth / 16); #This shall ignore the incomplete blocks i
 numBlockHeight = int(frameHeight / 16);
 seq_mse = [0] * 3;
 seq_mse_ROI = [0] * 3;
+seq_mse_NROI = [0] * 3;
 seq_psnr = [0] * 3;
 seq_psnr_ROI = [0] * 3;
+seq_psnr_NROI = [0] * 3;
 seq_avg_psnr = 0;
 seq_avg_psnr_ROI = 0;
+seq_avg_psnr_NROI = 0;
 ##create a PSNR MAP over the frame
 luma_mse_block = [];##Fill in the data in raster-scan order
 for numFrame in range(0,totalFrames):
@@ -220,6 +223,19 @@ for numFrame in range(0,totalFrames):
                     mse_u_roi += cur_row_mse_u;
                     mse_v_roi += cur_row_mse_v;
 
+    ##NROI calcuaiton
+    num_NROI_blocks = (numBlockHeight * numBlockWidth) - num_ROI_blocks;
+    seq_avg_psnr_NROI += psnr(((mse + mse_u + mse_v) - (mse_roi + mse_u_roi + mse_v_roi))/(num_NROI_blocks * 16 * 16 * 3 / 2));
+    mse_nroi = (mse - mse_roi)/(num_NROI_blocks * 16 * 16);
+    mse_nroi_u = (mse_u - mse_u_roi)/(num_NROI_blocks * 8 * 8);
+    mse_nroi_v = (mse_v - mse_v_roi) / (num_NROI_blocks * 8 * 8);
+    seq_psnr_NROI[0] += psnr(mse_nroi);
+    seq_psnr_NROI[1] += psnr(mse_nroi_u);
+    seq_psnr_NROI[2] += psnr(mse_nroi_v);
+    seq_mse_NROI[0] += mse_nroi;
+    seq_mse_NROI[1] += mse_nroi_u;
+    seq_mse_NROI[2] += mse_nroi_v;
+
     ##Full frame calculation
     total_mse = (mse + mse_u + mse_v)/(frameSize);
     seq_avg_psnr += psnr(total_mse);
@@ -242,27 +258,30 @@ for numFrame in range(0,totalFrames):
     seq_psnr_ROI[1] += psnr(mse_roi_u);
     seq_psnr_ROI[2] += psnr(mse_roi_v);
 
+
     '''
     print("n = ", numFrame ,"Luma PSNR = ", "%.2f" % psnr(mse), "%.2f" % mse ,
           "U_psnr = ", "%.2f" % psnr(mse_u), "%.2f" % (mse_u),"Vpsnr = ",
           "%.2f" % psnr(mse_v) ,"%.2f" % (mse_v) ,"Wt PSNR = " ,
           "%.2f" % ((6 * psnr(mse) + psnr(mse_u) + psnr(mse_v))/8) , "total PSNR = ", "%.2f" % psnr(total_mse),total_mse,
-          "Luma ROI PSNR = ", "%.2f" % psnr(mse_roi_luma));'''
+          "Luma ROI PSNR = ", "%.2f" % psnr(mse_roi_luma),
+          "Luma NROI PSNR = ", "%.2f" % psnr(mse_nroi));'''
     ##Accumulate states to b printed in the end.
     seq_mse_ROI[0] += mse_roi_luma;
     seq_mse_ROI[1] += mse_roi_u;
     seq_mse_ROI[2] += mse_roi_v;
 
-
 print("##############################################################");
 print("---------MSE PSNR---------------");
-print("MSE based Seq PSNR = ", "%.2f" %  psnr((seq_mse[0] * 4 + seq_mse[1] + seq_mse[2])/(6* totalFrames)), "ROI PSNR = ", "%.2f" %  psnr((seq_mse_ROI[0] * 4 + seq_mse_ROI[1] + seq_mse_ROI[2])/(6* totalFrames)))
+print("MSE based Seq PSNR = ", "%.2f" %  psnr((seq_mse[0] * 4 + seq_mse[1] + seq_mse[2])/(6* totalFrames)), "ROI PSNR = ", "%.2f" %  psnr((seq_mse_ROI[0] * 4 + seq_mse_ROI[1] + seq_mse_ROI[2])/(6* totalFrames)),
+      "NROI PSNR = ", "%.2f" % psnr((seq_mse_NROI[0] * 4 + seq_mse_NROI[1] + seq_mse_NROI[2]) / (6 * totalFrames)))
 print("Luma PSNR =  ", "%.2f" % psnr(seq_mse[0]/totalFrames), "Luma PSNR ROI = ", "%.2f" % psnr(seq_mse_ROI[0]/totalFrames));
 print("---------AVG PSNR---------------");
-print("Avg PSNR = ","%.2f" % (seq_avg_psnr/totalFrames), "ROI Avg PSNR = ","%.2f" % (seq_avg_psnr_ROI/totalFrames));
-print("Avg Luma PSNR =  ", "%.2f" % (seq_psnr[0]/totalFrames), "Avg Luma PSNR ROI = ", "%.2f" % (seq_psnr_ROI[0]/totalFrames));
+print("Avg PSNR = ","%.2f" % (seq_avg_psnr/totalFrames), "ROI Avg PSNR = ","%.2f" % (seq_avg_psnr_ROI/totalFrames), "NROI Avg PSNR = ","%.2f" % (seq_avg_psnr_NROI/totalFrames));
+print("Avg Luma PSNR =  ", "%.2f" % (seq_psnr[0]/totalFrames), "Avg Luma PSNR ROI = ", "%.2f" % (seq_psnr_ROI[0]/totalFrames),"Avg Luma PSNR NROI = ", "%.2f" % (seq_psnr_NROI[0]/totalFrames));
 print("---------WT AVG PSNR------------");
-print("Wt Avg PSNR = ", "%.2f" %  (( 6 * seq_psnr[0] + seq_psnr[1] + seq_psnr[2])/(8 * totalFrames)), "Wt Avg PSNR ROI = ", "%.2f" %  (( 6 * seq_psnr_ROI[0] + seq_psnr_ROI[1] + seq_psnr_ROI[2])/(8 * totalFrames)));
+print("Wt Avg PSNR = ", "%.2f" %  (( 6 * seq_psnr[0] + seq_psnr[1] + seq_psnr[2])/(8 * totalFrames)), "Wt Avg PSNR ROI = ", "%.2f" %  (( 6 * seq_psnr_ROI[0] + seq_psnr_ROI[1] + seq_psnr_ROI[2])/(8 * totalFrames)),
+      "Wt Avg PSNR NROI = ", "%.2f" % ((6 * seq_psnr_NROI[0] + seq_psnr_NROI[1] + seq_psnr_NROI[2]) / (8 * totalFrames)));
 
 ##Calculate PSNR of all blocks
 Luma_psnr_block = []
