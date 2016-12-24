@@ -289,8 +289,9 @@ for i in range(0, len(luma_mse_block)):
     Luma_psnr_block.append(psnr(luma_mse_block[i] / (16 * 16)));
 
 ##Code to generate PSNR Map
-createPSNRMap(luma_mse_block, Luma_psnr_block, MIN_PSNR, MAX_PSNR, PSNR_map_file);
-
+createPSNRMap(luma_mse_block, Luma_psnr_block, MIN_PSNR, MAX_PSNR, PSNR_map_file + '.bin');
+#create absolute PSNR map
+createPSNRMap(luma_mse_block, Luma_psnr_block, 25, 45, PSNR_map_file + '_abs.bin');
 ##calculate the standard deviation in PSNR and MSE before and after changes
 calcStdDev(luma_mse_block, Luma_psnr_block, int((frameWidth * frameHeight)/ (16 * 16)));
 print("Exiting!!!!!");
